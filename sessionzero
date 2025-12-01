@@ -1,0 +1,20 @@
+from peds_blf_obfuscated.interpreter.some_ip.someip_message import SomeIpPdu, SomeIpPduSd
+
+class SessionIdZero:
+    NAME="Session ID Zero"
+    TYPE="SOMEIP"
+    resultList = []
+
+    def executeTest(self,someIpPdu):
+        if type(someIpPdu) is SomeIpPduSd or type(someIpPdu) is SomeIpPdu:
+            if someIpPdu.request_id & 0xFFFF == 0:
+                result="ERROR"
+            else:
+                result="PASS"
+            #test case, type, result, timestamp, ecu, bus
+            self.resultList.append((self.NAME, self.TYPE, result, someIpPdu.timestamp, "", someIpPdu.bus_name))
+        else:
+            return
+        
+    def getResultSet(self):
+        return self.resultList
