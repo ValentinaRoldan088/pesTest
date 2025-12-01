@@ -1,0 +1,19 @@
+from peds_blf_obfuscated.interpreter.some_ip.someip_message import SomeIpPdu, SomeIpPduSd
+
+class OfferOverview:
+    RSI_SERVICE_ID= 65534 #0xFFFE
+    detected_service_ids= set()
+
+    def executeTest(self, someIpPduSd):
+        if someIpPduSd is not None and type(someIpPduSd) is SomeIpPduSd:
+            entries= someIpPduSd.get_entries()
+            for entry in entries:
+                if(entry.entry_type.name == "OFFER"):
+                    serviceId= someIpPduSd.service_id
+                    if(serviceId != self.RSI_SERVICE_ID):
+                        self.detected_service_ids.add(serviceId)
+        else:
+            return None
+        
+    def getResultSet(self):
+        return self.detected_service_ids
