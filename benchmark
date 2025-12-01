@@ -1,0 +1,55 @@
+import time
+import sys
+from peds_blf_obfuscated.parser import Parser
+from peds_blf_obfuscated.database.database_setup import DatabaseSetup
+from peds_blf_obfuscated.interpreter.some_ip.someip_message import SomeIpPdu, SomeIpPduSd
+from peds_blf_obfuscated.interpreter.nm_message import NmMessage
+from tests.someip import OfferOverview, MissingResponse, TestabilityServiceActive, SessionIdZero
+import csv
+
+if __name__ == '__main__':
+    
+    start_time = time.time()
+    print(f"Start at {start_time}")
+
+    blf_file = sys.argv[1]
+
+    columns= ["Test case", "Type", "Result", "Timestamp", "ECU", "Bus name"]
+
+    DatabaseSetup.set_database_context(blf_file)  # Sets channel mappings, NIP version  and HCP2 presence (if car is known)
+    # Sets channel mappings, NIP version  and HCP2 presence (if car is known)
+    # Currently only the following NIP versions are supported: {'12.06.91', '12.08.06', '12.10.21'}
+    parser = Parser()
+    parser.create_filter({'SomeIpPdu': '_allow', 'SomeIpPduSd': '_allow',})
+
+   #SOMEIP test cases
+    missingResponse= MissingResponse()
+    offerOverview = OfferOverview()
+    testabilityServiceActive = TestabilityServiceActive() 
+    sessionIdzero = SessionIdZero()
+
+    for obj in parser.get_objects_from_blf(blf_file):
+        if obj is None or type(obj) is NmMessage: #NmMessage is not filtered out by default
+            continue
+        if type(obj) is SomeIpPduSd:
+            offerOverview.executeTest(obj)
+            testabilityServiceActive.executeTest(obj)
+            sessionIdzero.executeTest(obj)
+
+        if type(obj) is SomeIpPdu:
+            missingResponse.executeTest(obj)
+            sessionIdzero.executeTest(obj)
+
+    #Write out results to CSV
+    with open("pes-results.csv", "w", newline="") as f: #TODO change filename
+        writer=csv.writer(f, delimiter=';')
+        writer.writerow(columns)
+        writer.writerows(testabilityServiceActive.getResultSet())
+        writer.writerows(missingResponse.getResultSet())
+        writer.writerows(sessionIdzero.getResultSet())
+    
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+
+    print(f"End at {end_time}")
+    print(f"Elapsed time: {elapsed_time:.4f} seconds")
