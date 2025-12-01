@@ -1,0 +1,44 @@
+from peds_blf_obfuscated.interpreter.some_ip.someip_message import SomeIpPdu, SomeIpPduSd
+import hashlib
+
+class MissingResponse:
+        #test case, type, result, timestamp, ecu, bus
+    requestIdentifier=set()
+    requestDict={}
+    resultList=[]
+    def executeTest(self, someIpPdu):
+        if type(someIpPdu) is SomeIpPdu and someIpPdu.message_type is not None:
+            if(someIpPdu.message_type.name == "REQUEST"):
+                key=self.make_key(someIpPdu, False)
+                self.requestIdentifier.add(key)
+                self.requestDict[key]=someIpPdu
+            elif(someIpPdu.message_type.name=="RESPONSE" or someIpPdu.message_type.name=="ERROR"):
+                key=self.make_key(someIpPdu, True)
+                if key in self.requestIdentifier:
+                    self.resultList.append(("Missing Response", "SOMEIP", "PASS", someIpPdu.timestamp, "", someIpPdu.bus_name))
+                    self.requestIdentifier.remove(key)
+                    del self.requestDict[key]
+        else:
+            return
+        
+    def getResultSet(self):
+        for key in self.requestIdentifier:
+            ev= self.requestDict[key]
+            self.resultList.append(("Missing Response", "SOMEIP", "ERROR", ev.timestamp, "", ev.bus_name))
+        return self.resultList
+    
+    def make_key(self, ev, isResponse):
+        sourceIp= ev.frame.internet_protocol.src
+        destIp= ev.frame.internet_protocol.dst
+        vlan= ev.interface_version
+        source= ev.frame.channel
+        direction= ev.frame.is_rx
+        requestId= ev.request_id
+        serviceId= ev.service_id
+        methodId= ev.method_id
+        if(isResponse):
+            attrList= [sourceIp, destIp, vlan, source, direction, requestId, serviceId, methodId]
+        else: 
+            attrList= [destIp, sourceIp, vlan, source, direction, requestId, serviceId, methodId]
+        key_string= "|".join(map(str, attrList))
+        return hashlib.sha256(key_string.encode()).hexdigest()
