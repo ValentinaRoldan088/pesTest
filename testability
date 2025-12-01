@@ -1,0 +1,23 @@
+from peds_blf_obfuscated.interpreter.some_ip.someip_message import SomeIpPdu, SomeIpPduSd
+
+class TestabilityServiceActive:
+    NAME="Testability Services"
+    TYPE="SOMEIP"
+    testabilotyServiceList = [65280, 65283, 65284, 65286, 65288, 65296, 65299, 65300, 65302, 65304]
+    resultList = []
+
+    def executeTest(self,someIpPdu):
+        if type(someIpPdu) is SomeIpPduSd:
+            service_id = someIpPdu.service_id
+            result=""
+            if service_id in self.testabilotyServiceList:
+                result="ERROR"
+            else:
+                result="PASS"
+            #test case, type, result, timestamp, ecu, bus
+            self.resultList.append((self.NAME, self.TYPE, result, someIpPdu.timestamp, "", someIpPdu.bus_name))
+        else:
+            return
+        
+    def getResultSet(self):
+        return self.resultList
